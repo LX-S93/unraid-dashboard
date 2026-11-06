@@ -32,6 +32,13 @@
     while (Math.abs(b) >= 1000 && i < u.length - 1) { b /= 1000; i++; }
     return (i === 0 ? Math.round(b) : b.toFixed(d == null ? (b < 10 ? 1 : 0) : d)) + ' ' + u[i];
   }
+  // memory (RAM, VRAM) is counted in powers of 1024 – 24576 MiB is a 24 GB card
+  function mem(b, d) {
+    if (b == null || isNaN(b)) return '–';
+    var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0;
+    while (Math.abs(b) >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+    return (i === 0 ? Math.round(b) : b.toFixed(d == null ? (b < 10 ? 1 : 0) : d)) + ' ' + u[i];
+  }
   function rate(bps) {
     var bits = (bps || 0) * 8, u = ['bit/s', 'kbit/s', 'Mbit/s', 'Gbit/s'], i = 0;
     while (bits >= 1000 && i < u.length - 1) { bits /= 1000; i++; }
@@ -275,11 +282,11 @@
     if (!lv) return;
     var m = lv.mem, used = m.used / m.total * 100, cache = Math.min(100 - used, m.cache / m.total * 100);
     $('#dh-mem').html(card('mem', 'Memory', I.mem, '',
-      '<div class="dh-big"><b>' + pct(used) + '</b><span>' + bytes(m.used) + ' of ' + bytes(m.total) + ' in use</span></div>' +
+      '<div class="dh-big"><b>' + pct(used) + '</b><span>' + mem(m.used) + ' of ' + mem(m.total) + ' in use</span></div>' +
       spark(S.hist.mem, 100, 'pur') +
       '<div class="dh-stack" role="img" aria-label="Memory split"><i class="u" style="width:' + used.toFixed(1) + '%"></i><i class="c" style="width:' + cache.toFixed(1) + '%"></i></div>' +
-      '<div class="dh-legend"><span><i class="u"></i>Used ' + bytes(m.used) + '</span><span><i class="c"></i>Cache ' + bytes(m.cache) + '</span><span><i class="f"></i>Free ' + bytes(Math.max(0, m.total - m.used - m.cache)) + '</span></div>' +
-      (m.swap_total ? '<div class="dh-kv"><span>Swap</span><b>' + bytes(m.swap_used) + ' / ' + bytes(m.swap_total) + '</b></div>' : '')));
+      '<div class="dh-legend"><span><i class="u"></i>Used ' + mem(m.used) + '</span><span><i class="c"></i>Cache ' + mem(m.cache) + '</span><span><i class="f"></i>Free ' + mem(Math.max(0, m.total - m.used - m.cache)) + '</span></div>' +
+      (m.swap_total ? '<div class="dh-kv"><span>Swap</span><b>' + mem(m.swap_used) + ' / ' + mem(m.swap_total) + '</b></div>' : '')));
   }
 
   function renderGpu() {
@@ -301,10 +308,10 @@
         '<div class="dh-big"><b>' + pct(g.busy) + '</b><span>busy · ' + esc(g.pstate || '') + (g.clock ? ' · ' + Math.round(g.clock) + ' MHz' : '') + '</span></div>' +
         spark(S.hist.gpu, 100, 'teal') +
         '<div class="dh-kv"><span>Power</span><b>' + (g.power != null ? Math.round(g.power) + ' W' : '–') + (g.power_limit ? ' / ' + Math.round(g.power_limit) + ' W' : '') + '</b></div>' + bar(pw, pw >= 90 ? 'bad' : pw >= 60 ? 'acc' : 'ok', 'Power draw') +
-        '<div class="dh-kv"><span>Video memory</span><b>' + bytes(g.vram_used) + ' / ' + bytes(g.vram_total) + '</b></div>' + bar(vram, lvl(vram, 90, 98)) +
+        '<div class="dh-kv"><span>Video memory</span><b>' + mem(g.vram_used) + ' / ' + mem(g.vram_total) + '</b></div>' + bar(vram, lvl(vram, 90, 98)) +
         (g.fan != null ? '<div class="dh-kv"><span>Fan</span><b>' + (g.fan ? pct(g.fan) : 'stopped') + '</b></div>' : '') +
         (procs.length ? '<div class="dh-sect">Using the GPU</div>' + procs.map(function (p) {
-          return '<div class="dh-gproc"><span class="dh-tn">' + avatar(p.name, cicon(p.name)) + '<span>' + esc(p.name) + '</span></span><b>' + bytes(p.mem) + '</b></div>';
+          return '<div class="dh-gproc"><span class="dh-tn">' + avatar(p.name, cicon(p.name)) + '<span>' + esc(p.name) + '</span></span><b>' + mem(p.mem) + '</b></div>';
         }).join('') : '<div class="dh-kv"><span>Using the GPU</span><b>nothing</b></div>') +
         (others ? '<div class="dh-kv"><span>Also</span><b>' + others + '</b></div>' : '')));
       return;
@@ -312,8 +319,8 @@
     $('#dh-gpu').html(card('gpu', 'Graphics', I.gpu, temp(s.gpu, 80, 95),
       '<div class="dh-big"><b>' + pct(g.busy) + '</b><span>' + esc(g.vendor) + ' GPU busy</span></div>' +
       spark(S.hist.gpu, 100, 'teal') +
-      '<div class="dh-kv"><span>Video memory</span><b>' + bytes(g.vram_used) + ' / ' + bytes(g.vram_total) + '</b></div>' + bar(vram, lvl(vram, 80, 95)) +
-      (g.gtt_total ? '<div class="dh-kv"><span>Shared memory</span><b>' + bytes(g.gtt_used) + '</b></div>' : '') +
+      '<div class="dh-kv"><span>Video memory</span><b>' + mem(g.vram_used) + ' / ' + mem(g.vram_total) + '</b></div>' + bar(vram, lvl(vram, 80, 95)) +
+      (g.gtt_total ? '<div class="dh-kv"><span>Shared memory</span><b>' + mem(g.gtt_used) + '</b></div>' : '') +
       ((s.nvme || []).length ? '<div class="dh-temps sm">' + s.nvme.map(function (n, i) { return '<div><span>NVMe ' + (i + 1) + '</span>' + temp(n.temp, 60, 70) + '</div>'; }).join('') + '</div>' : '')));
   }
 
@@ -424,7 +431,7 @@
         return '<div class="dh-top"><span class="dh-tn">' + avatar(c.name, cicon(c.name)) + '<span>' + esc(c.name) + '</span></span>' + bar(v / max * 100, cls) + '<b>' + lab + '</b></div>';
       };
       html += '<div class="dh-tops"><div><div class="dh-sect">Top CPU</div>' + byCpu.map(function (c) { return row(c, c.cpu, maxCpu, c.cpu.toFixed(1) + '%', 'acc'); }).join('') + '</div>' +
-        '<div><div class="dh-sect">Top memory</div>' + byMem.map(function (c) { return row(c, c.mem, maxMem, bytes(c.mem * 1048576), 'pur'); }).join('') + '</div></div>';
+        '<div><div class="dh-sect">Top memory</div>' + byMem.map(function (c) { return row(c, c.mem, maxMem, mem(c.mem * 1048576), 'pur'); }).join('') + '</div></div>';
     } else {
       html += '<div class="dh-muted dh-pad">Measuring container usage …</div>';
     }

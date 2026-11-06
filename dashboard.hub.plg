@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dashboard.hub">
 <!ENTITY author    "LX-S93">
-<!ENTITY version   "2026.11.06.4">
-<!ENTITY md5       "1b78c4cb4e12e8b930c79899ea556d96">
+<!ENTITY version   "2026.11.06.5">
+<!ENTITY md5       "c285d95291fb82b9160609d6246a48be">
 <!ENTITY github    "LX-S93/unraid-dashboard">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/&github;/main">
 <!ENTITY pluginURL "&gitURL;/&name;.plg">
@@ -13,6 +13,8 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" support="https://github.com/&github;/issues" project="https://github.com/&github;" min="7.0.0" icon="tachometer" launch="Dashboard">
 
 <CHANGES>
+### 2026.11.06.5
+- RAM and video memory are shown in binary units like everywhere else (a 24 GB card no longer reads 26 GB); disks stay decimal
 ### 2026.11.06.4
 - The GPU collector finishes well within its minute, so no minute gets skipped
 ### 2026.11.06.3
