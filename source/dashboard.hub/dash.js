@@ -492,10 +492,27 @@
     var chart = '<div class="dh-sect">Last 30 days</div><svg class="dh-bars" viewBox="0 0 100 80" preserveAspectRatio="none" role="img" aria-label="Energy per day for the last 30 days">' + bars + '</svg>' +
       '<div class="dh-axis"><span>' + esc(first) + '</span><span class="dh-legend"><span><i class="ea"></i>in use</span><span><i class="ei"></i>idle</span></span><span>today</span></div>';
     // today: power over the day in 5-minute steps
-    var cv = e.curve.map(function (v) { return v == null ? 0 : v; });
-    var upto = Math.floor(e.now_minute / 5) + 1;
-    var day = '<div class="dh-sect">Today, power over the day</div>' + spark(cv.slice(0, upto).concat(new Array(Math.max(0, 288 - upto)).fill(0)).slice(0, 288), Math.max.apply(null, cv.concat([50])), 'acc', 60) +
-      '<div class="dh-axis"><span>0:00</span><span>12:00</span><span>24:00</span></div>';
+    // only the measured part of the day is drawn; gaps stay gaps
+    var vals = e.curve.filter(function (v) { return v != null; });
+    var cmax = Math.max.apply(null, vals.concat([50])) * 1.1, H = 60, path = '', area = '', run = [];
+    function flush() {
+      if (!run.length) return;
+      if (run.length === 1) run.push([run[0][0] + 100 / 287, run[0][1]]);
+      path += 'M' + run.map(function (p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' L');
+      area += 'M' + run[0][0].toFixed(2) + ',' + H + ' L' + run.map(function (p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' L') + ' L' + run[run.length - 1][0].toFixed(2) + ',' + H + ' Z';
+      run = [];
+    }
+    e.curve.forEach(function (v, i) {
+      if (v == null) { flush(); return; }
+      run.push([i / 287 * 100, H - 2 - v / cmax * (H - 4)]);
+    });
+    flush();
+    var nowX = (e.now_minute / 1440 * 100).toFixed(2);
+    var day = '<div class="dh-sect">Today, power over the day</div>' +
+      '<svg class="dh-spark acc dh-day" viewBox="0 0 100 ' + H + '" preserveAspectRatio="none" role="img" aria-label="Power over the day">' +
+      '<line class="now" x1="' + nowX + '" x2="' + nowX + '" y1="0" y2="' + H + '" vector-effect="non-scaling-stroke"/>' +
+      (area ? '<path class="a" d="' + area + '"/><path class="l" d="' + path + '" vector-effect="non-scaling-stroke"/>' : '') + '</svg>' +
+      '<div class="dh-axis"><span>0:00</span><span>' + (vals.length ? 'peak ' + Math.round(Math.max.apply(null, vals)) + ' W' : '') + '</span><span>24:00</span></div>';
     // who used it
     var apps = Object.keys(m.apps).map(function (k) { return { n: k, wh: m.apps[k] }; });
     apps.push({ n: 'Idle', wh: m.idle_wh, idle: true });

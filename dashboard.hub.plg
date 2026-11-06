@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dashboard.hub">
 <!ENTITY author    "LX-S93">
-<!ENTITY version   "2026.11.06.2">
-<!ENTITY md5       "31e9a0ea06b24542c81d6ae88e1a4097">
+<!ENTITY version   "2026.11.06.3">
+<!ENTITY md5       "870910c6d1054bff72586392293013ca">
 <!ENTITY github    "LX-S93/unraid-dashboard">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/&github;/main">
 <!ENTITY pluginURL "&gitURL;/&name;.plg">
@@ -13,6 +13,8 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" support="https://github.com/&github;/issues" project="https://github.com/&github;" min="7.0.0" icon="tachometer" launch="Dashboard">
 
 <CHANGES>
+### 2026.11.06.3
+- Today's power curve only draws measured minutes and marks the current time
 ### 2026.11.06.2
 - NVIDIA cards in the Graphics card: load, power against limit, video memory, fan, power state and which containers use the GPU
 - New "GPU energy &amp; cost" card: today, this month with forecast, per year, idle draw, 30-day chart, today's power curve and cost per container

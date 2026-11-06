@@ -221,3 +221,5 @@ a.dh-alert:hover{filter:brightness(.97)}
 .dh-price{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mu)}
 .dh .dh-price input{width:70px;height:30px;margin:0;padding:0 8px;border:1px solid var(--line2);border-radius:7px;background:var(--s1);color:var(--tx)}
 .dh-ini svg{width:13px;height:13px;color:#fff}
+.dh .dh-day{height:60px}
+.dh-day line.now{stroke:var(--line2);stroke-width:1;stroke-dasharray:3 3}
