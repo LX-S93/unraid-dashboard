@@ -99,9 +99,10 @@ function dh_energy_collect() {
 
   $samples = [];
   $util = [];
-  $end = time() + 54;
+  // stay well inside the minute so the next run never finds the lock taken
+  $end = time() + 50;
   $pmon = null;
-  for ($i = 0; time() < $end; $i++) {
+  for ($i = 0; ; $i++) {
     foreach (dh_sh('timeout 5 nvidia-smi --query-gpu=power.draw,utilization.gpu --format=csv,noheader,nounits') as $n => $l) {
       $p = array_map('trim', explode(',', $l));
       $w = dh_num($p[0] ?? '');
@@ -109,6 +110,7 @@ function dh_energy_collect() {
     }
     // per-process load once, in the middle of the minute
     if ($i === 5) $pmon = dh_sh('timeout 8 nvidia-smi pmon -c 1 -s u');
+    if (time() + 5 > $end) break;
     sleep(5);
   }
   if (!$samples) { flock($lock, LOCK_UN); return; }
