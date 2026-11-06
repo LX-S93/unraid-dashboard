@@ -1,0 +1,14 @@
+Menu="Dashboard:0"
+Title="Overview"
+Code="f0e4"
+Markdown="false"
+---
+<?
+$dhTheme = $display['theme'] ?? 'white';
+$dhDark = in_array($dhTheme, ['black', 'gray']);
+?>
+<link rel="stylesheet" href="<?autov('/plugins/dashboard.hub/dash.css')?>">
+<div id="dh" class="dh <?=$dhDark ? 'dh-dark' : 'dh-light'?>">
+  <div class="dh-loading">Loading dashboard …</div>
+</div>
+<script src="<?autov('/plugins/dashboard.hub/dash.js')?>"></script>

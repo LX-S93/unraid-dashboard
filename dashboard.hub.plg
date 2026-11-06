@@ -1,0 +1,57 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "dashboard.hub">
+<!ENTITY author    "LX-S93">
+<!ENTITY version   "2026.11.06">
+<!ENTITY md5       "ff88336bd94ae1ad30a60f8a3254898c">
+<!ENTITY github    "LX-S93/unraid-dashboard">
+<!ENTITY gitURL    "https://raw.githubusercontent.com/&github;/main">
+<!ENTITY pluginURL "&gitURL;/&name;.plg">
+<!ENTITY pkg       "&name;-&version;-x86_64-1">
+<!ENTITY cfg       "/boot/config/plugins/&name;">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" support="https://github.com/&github;/issues" project="https://github.com/&github;" min="7.0.0" icon="tachometer" launch="Dashboard">
+
+<CHANGES>
+### 2026.11.06
+- First release: a modern overview in the Dashboard tab, Unraid's tile view one click away
+- Live processor, memory, graphics, UPS and network cards with short history charts
+- Storage at a glance: array, parity check progress, pools and boot device with temperatures and usage
+- Containers and VMs: running, needing attention, updates, top CPU and memory users (with Container Hub)
+- Services: watches the web interfaces you pick and shows response times
+- "Needs attention" strip for disk, temperature, UPS, Tailscale, container and service problems
+</CHANGES>
+
+<FILE Run="/bin/bash">
+<INLINE>
+mkdir -p &cfg;
+find &cfg; -maxdepth 1 -name '&name;-*.txz' ! -name '&pkg;.txz' -delete
+true
+</INLINE>
+</FILE>
+
+<FILE Name="&cfg;/&pkg;.txz" Run="upgradepkg --install-new">
+<URL>&gitURL;/archive/&pkg;.txz</URL>
+<MD5>&md5;</MD5>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
+echo ""
+echo "----------------------------------------------------"
+echo " &name; &version; installed"
+echo " Open the DASHBOARD tab in the top bar"
+echo "----------------------------------------------------"
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+removepkg &pkg; >/dev/null 2>&amp;1
+rm -rf /usr/local/emhttp/plugins/&name;
+rm -f &cfg;/&name;-*.txz
+echo "&name; removed. Settings are kept in &cfg;"
+</INLINE>
+</FILE>
+
+</PLUGIN>
