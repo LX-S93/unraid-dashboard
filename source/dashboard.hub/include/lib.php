@@ -32,7 +32,7 @@ function dh_read($f) { return is_readable($f) ? trim((string)@file_get_contents(
 
 function dh_settings() {
   $s = dh_json_read(DH_CFG . '/settings.json', []);
-  return array_merge(['services' => null, 'hidden' => []], $s);
+  return array_merge(['services' => null, 'hidden' => [], 'energy_price' => 0.30, 'currency' => '€'], $s);
 }
 
 /* ---------- fast changing values (polled every few seconds) ---------- */
@@ -119,7 +119,8 @@ function dh_gpus() {
       'gtt_used' => (float)dh_read("$d/mem_info_gtt_used"), 'gtt_total' => (float)dh_read("$d/mem_info_gtt_total"),
       'vendor' => $vendor === '0x1002' ? 'AMD' : ($vendor === '0x8086' ? 'Intel' : ($vendor === '0x10de' ? 'NVIDIA' : $vendor))];
   }
-  return $r;
+  // dedicated NVIDIA cards first, they are what people want to watch
+  return array_merge(dh_nvidia(), $r);
 }
 
 function dh_ups() {
@@ -324,3 +325,5 @@ function dh_check_services($services) {
   curl_multi_close($mh);
   return $out;
 }
+
+require_once __DIR__ . '/gpu.php';

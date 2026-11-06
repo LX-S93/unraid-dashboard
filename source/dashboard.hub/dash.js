@@ -12,8 +12,9 @@
   };
   var HIST = 60;
   var S = {
-    live: null, prev: null, cpu: null, cores: [], net: {}, hist: { cpu: [], mem: [], rx: [], tx: [], gpu: [] },
-    storage: null, system: null, cts: null, stats: null, services: null, checks: {}, svcAuto: false, edit: null
+    live: null, prev: null, cpu: null, cores: [], net: {}, hist: { cpu: [], mem: [], rx: [], tx: [], gpu: [], gpuw: [] },
+    storage: null, system: null, cts: null, stats: null, services: null, checks: {}, svcAuto: false, edit: null,
+    energy: null, priceEdit: false
   };
 
   /* ---------- helpers ---------- */
@@ -64,6 +65,13 @@
       '<path class="a" d="M' + first + ',' + h + ' L' + pts.join(' L') + ' L100,' + h + ' Z"/>' +
       '<path class="l" d="M' + pts.join(' L') + '" vector-effect="non-scaling-stroke"/></svg>';
   }
+  function money(v, cur) {
+    if (v == null || isNaN(v)) return '–';
+    var code = { '€': 'EUR', '$': 'USD', '£': 'GBP', 'CHF': 'CHF' }[cur || '€'] || 'EUR';
+    try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, maximumFractionDigits: v < 10 ? 2 : 0 }).format(v); }
+    catch (e) { return v.toFixed(2) + ' ' + (cur || '€'); }
+  }
+  function kwh(wh) { return wh == null ? '–' : (wh >= 10000 ? (wh / 1000).toFixed(0) : (wh / 1000).toFixed(wh >= 1000 ? 1 : 2)) + ' kWh'; }
   function chip(k, t) { return '<span class="dh-chip ' + (k || '') + '">' + t + '</span>'; }
   function temp(t, warn, crit) {
     if (t == null) return '';
@@ -162,6 +170,9 @@
       if (st.last_check && st.last_check.errors > 0) add('warn', 'Last parity check found ' + st.last_check.errors + ' errors', '/Main');
     }
     if (lv && lv.ups && !/ONLINE/.test(lv.ups.status)) add('bad', 'UPS: ' + lv.ups.status.toLowerCase() + (lv.ups.runtime ? ', ' + Math.round(lv.ups.runtime) + ' min left' : ''), '/Settings/UPSsettings');
+    (lv && lv.gpus || []).forEach(function (g) {
+      if (g.vendor === 'NVIDIA' && g.temp >= 83) add(g.temp >= 90 ? 'bad' : 'warn', g.name + ' is at ' + Math.round(g.temp) + '°C');
+    });
     if (lv && lv.sensors && lv.sensors.cpu >= 85) add(lv.sensors.cpu >= 95 ? 'bad' : 'warn', 'CPU is at ' + Math.round(lv.sensors.cpu) + '°C');
     if (sy && sy.tailscale && sy.tailscale.state && sy.tailscale.state !== 'Running') {
       add('warn', 'Tailscale ' + (sy.tailscale.state === 'NeedsLogin' ? 'is logged out – remote access is down' : 'is ' + sy.tailscale.state.toLowerCase()), '/Settings/Tailscale');
@@ -210,6 +221,7 @@
         '<section class="dh-card c3" id="dh-mem" aria-label="Memory"></section>' +
         '<section class="dh-card c3" id="dh-gpu" aria-label="Graphics"></section>' +
         '<section class="dh-card c3" id="dh-power" aria-label="Power"></section>' +
+        '<section class="dh-card c12" id="dh-energy" aria-label="GPU energy and cost" hidden></section>' +
         '<section class="dh-card c8" id="dh-storage" aria-label="Storage"></section>' +
         '<section class="dh-card c4" id="dh-net" aria-label="Network"></section>' +
         '<section class="dh-card c6" id="dh-cont" aria-label="Containers and VMs"></section>' +
@@ -281,6 +293,22 @@
       return;
     }
     var vram = g.vram_total ? g.vram_used / g.vram_total * 100 : 0;
+    if (g.vendor === 'NVIDIA') {
+      var pw = g.power_limit ? g.power / g.power_limit * 100 : 0;
+      var others = lv.gpus.slice(1).map(function (o) { return esc((o.name || o.vendor + ' GPU')) + ' ' + pct(o.busy); }).join(' · ');
+      var procs = (g.procs || []).slice().sort(function (a, b) { return b.mem - a.mem; });
+      $('#dh-gpu').html(card('gpu', g.name, I.gpu, temp(g.temp, 80, 88),
+        '<div class="dh-big"><b>' + pct(g.busy) + '</b><span>busy · ' + esc(g.pstate || '') + (g.clock ? ' · ' + Math.round(g.clock) + ' MHz' : '') + '</span></div>' +
+        spark(S.hist.gpu, 100, 'teal') +
+        '<div class="dh-kv"><span>Power</span><b>' + (g.power != null ? Math.round(g.power) + ' W' : '–') + (g.power_limit ? ' / ' + Math.round(g.power_limit) + ' W' : '') + '</b></div>' + bar(pw, pw >= 90 ? 'bad' : pw >= 60 ? 'acc' : 'ok', 'Power draw') +
+        '<div class="dh-kv"><span>Video memory</span><b>' + bytes(g.vram_used) + ' / ' + bytes(g.vram_total) + '</b></div>' + bar(vram, lvl(vram, 90, 98)) +
+        (g.fan != null ? '<div class="dh-kv"><span>Fan</span><b>' + (g.fan ? pct(g.fan) : 'stopped') + '</b></div>' : '') +
+        (procs.length ? '<div class="dh-sect">Using the GPU</div>' + procs.map(function (p) {
+          return '<div class="dh-gproc"><span class="dh-tn">' + avatar(p.name, cicon(p.name)) + '<span>' + esc(p.name) + '</span></span><b>' + bytes(p.mem) + '</b></div>';
+        }).join('') : '<div class="dh-kv"><span>Using the GPU</span><b>nothing</b></div>') +
+        (others ? '<div class="dh-kv"><span>Also</span><b>' + others + '</b></div>' : '')));
+      return;
+    }
     $('#dh-gpu').html(card('gpu', 'Graphics', I.gpu, temp(s.gpu, 80, 95),
       '<div class="dh-big"><b>' + pct(g.busy) + '</b><span>' + esc(g.vendor) + ' GPU busy</span></div>' +
       spark(S.hist.gpu, 100, 'teal') +
@@ -305,6 +333,7 @@
       body += '<div class="dh-empty">No UPS connected</div>';
     }
     if (s.gpu_power != null) body += '<div class="dh-kv"><span>Processor package</span><b>' + Math.round(s.gpu_power) + ' W</b></div>';
+    (lv.gpus || []).forEach(function (g) { if (g.vendor === 'NVIDIA' && g.power != null) body += '<div class="dh-kv"><span>' + esc(g.name) + '</span><b>' + Math.round(g.power) + ' W</b></div>'; });
     $('#dh-power').html(card('power', u ? (u.model || 'UPS') : 'Power', I.power, right || '', body));
   }
 
@@ -422,8 +451,66 @@
     $('#dh-svc').html(card('svc', 'Services', I.svc, edit, html));
   }
 
+  function renderEnergy() {
+    var e = S.energy, el = $('#dh-energy');
+    if (!e || !e.nvidia) { el.attr('hidden', ''); return; }
+    el.removeAttr('hidden');
+    var price = e.price, cur = e.currency;
+    var cost = function (wh) { return wh == null ? null : wh / 1000 * price; };
+    var priceBtn = S.priceEdit
+      ? '<span class="dh-price"><label for="dh-price-in">Price per kWh</label><input id="dh-price-in" type="text" inputmode="decimal" value="' + String(price).replace('.', ',') + '">' +
+        '<button type="button" class="dh-btn sm pri" data-act="price-save">Save</button><button type="button" class="dh-btn sm" data-act="price-cancel">Cancel</button></span>'
+      : '<button type="button" class="dh-btn sm" data-act="price-edit" title="Change the electricity price">' + I.edit + money(price, cur).replace(/[.,]00(?=\D*$)/, '') + ' / kWh</button>';
+    var mins = e.last30.minutes;
+    if (!mins) {
+      el.html(card('energy', 'GPU energy & cost', I.power, priceBtn,
+        '<div class="dh-empty">' + (e.collecting ? 'Measuring – the first values appear within a minute.' : 'The energy collector is not running. Reinstall the plugin to start it.') + '</div>'));
+      return;
+    }
+    var avgW = e.last30.wh / (mins / 60);
+    var monthProj = e.month.minutes ? e.month.wh / e.month.minutes * 1440 * e.month_days : null;
+    var idleShare = e.last30.wh ? e.last30.idle_wh / e.last30.wh * 100 : 0;
+    var t = e.today, m = e.month;
+    var tiles = '<div class="dh-ekpis">' +
+      '<div class="dh-ekpi"><small>Today</small><b>' + money(cost(t.wh), cur) + '</b><span>' + kwh(t.wh) + ' · ' + (t.minutes ? Math.round(t.wh / (t.minutes / 60)) + ' W average' : '–') + '</span></div>' +
+      '<div class="dh-ekpi"><small>' + new Date().toLocaleDateString([], { month: 'long' }) + ' so far</small><b>' + money(cost(m.wh), cur) + '</b><span>' + kwh(m.wh) + (monthProj ? ' · about ' + money(cost(monthProj), cur) + ' for the month' : '') + '</span></div>' +
+      '<div class="dh-ekpi"><small>Per year at this rate</small><b>' + money(avgW * 8.76 * price, cur) + '</b><span>' + Math.round(avgW) + ' W average · ' + kwh(avgW * 8760) + '</span></div>' +
+      '<div class="dh-ekpi"><small>Idle (doing nothing)</small><b>' + (e.idle_w != null ? Math.round(e.idle_w) + ' W' : '–') + '</b><span>' + Math.round(idleShare) + '% of the energy · ' + money(cost(e.last30.idle_wh), cur) + ' in 30 days</span></div>' +
+    '</div>';
+    // 30 days: idle part and active part per day
+    var maxWh = Math.max.apply(null, e.days.map(function (d) { return d.wh || 0; }).concat([1]));
+    var bw = 100 / e.days.length;
+    var bars = e.days.map(function (d, i) {
+      if (d.wh == null) return '';
+      var x = (i * bw + bw * 0.15).toFixed(2), w = (bw * 0.7).toFixed(2);
+      var hTot = d.wh / maxWh * 76, hIdle = (d.idle_wh || 0) / maxWh * 76;
+      var lbl = new Date(d.date + 'T12:00').toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) + ': ' + kwh(d.wh) + ' · ' + money(cost(d.wh), cur);
+      return '<g><title>' + esc(lbl) + '</title><rect class="i" x="' + x + '" y="' + (80 - hIdle).toFixed(2) + '" width="' + w + '" height="' + hIdle.toFixed(2) + '"/>' +
+        '<rect class="a' + (i === e.days.length - 1 ? ' now' : '') + '" x="' + x + '" y="' + (80 - hTot).toFixed(2) + '" width="' + w + '" height="' + Math.max(0, hTot - hIdle).toFixed(2) + '"/></g>';
+    }).join('');
+    var first = new Date(e.days[0].date + 'T12:00').toLocaleDateString([], { day: 'numeric', month: 'short' });
+    var chart = '<div class="dh-sect">Last 30 days</div><svg class="dh-bars" viewBox="0 0 100 80" preserveAspectRatio="none" role="img" aria-label="Energy per day for the last 30 days">' + bars + '</svg>' +
+      '<div class="dh-axis"><span>' + esc(first) + '</span><span class="dh-legend"><span><i class="ea"></i>in use</span><span><i class="ei"></i>idle</span></span><span>today</span></div>';
+    // today: power over the day in 5-minute steps
+    var cv = e.curve.map(function (v) { return v == null ? 0 : v; });
+    var upto = Math.floor(e.now_minute / 5) + 1;
+    var day = '<div class="dh-sect">Today, power over the day</div>' + spark(cv.slice(0, upto).concat(new Array(Math.max(0, 288 - upto)).fill(0)).slice(0, 288), Math.max.apply(null, cv.concat([50])), 'acc', 60) +
+      '<div class="dh-axis"><span>0:00</span><span>12:00</span><span>24:00</span></div>';
+    // who used it
+    var apps = Object.keys(m.apps).map(function (k) { return { n: k, wh: m.apps[k] }; });
+    apps.push({ n: 'Idle', wh: m.idle_wh, idle: true });
+    apps.sort(function (a, b) { return b.wh - a.wh; });
+    var topWh = apps.length ? apps[0].wh || 1 : 1;
+    var who = '<div class="dh-sect">Who used it this month</div>' + apps.slice(0, 7).map(function (a) {
+      return '<div class="dh-top"><span class="dh-tn">' + (a.idle ? '<span class="dh-av"><span class="dh-ini" style="background:var(--off)">' + I.moon + '</span></span>' : avatar(a.n, cicon(a.n))) + '<span>' + esc(a.n) + '</span></span>' +
+        bar(a.wh / topWh * 100, a.idle ? '' : 'acc') + '<b>' + money(cost(a.wh), cur) + '</b></div>';
+    }).join('') + '<div class="dh-muted dh-note">Energy above the idle draw is split between the containers by their GPU load.</div>';
+    el.html(card('energy', 'GPU energy & cost', I.power, priceBtn,
+      tiles + '<div class="dh-egrid"><div>' + chart + '</div><div>' + day + '</div><div>' + who + '</div></div>'));
+  }
+
   function renderAll() {
-    renderHead(); renderAlerts(); renderCpu(); renderMem(); renderGpu(); renderPower(); renderStorage(); renderNet(); renderCont(); renderSvc();
+    renderHead(); renderAlerts(); renderCpu(); renderMem(); renderGpu(); renderPower(); renderStorage(); renderNet(); renderCont(); renderSvc(); renderEnergy();
   }
 
   /* ---------- services editor ---------- */
@@ -472,6 +559,14 @@
         .fail(function (x) { el.prop('disabled', false); alert(err(x)); });
     }
   });
+  $(root).on('click', '[data-act=price-edit]', function () { S.priceEdit = true; renderEnergy(); $('#dh-price-in').focus().select(); });
+  $(root).on('click', '[data-act=price-cancel]', function () { S.priceEdit = false; renderEnergy(); });
+  $(root).on('click', '[data-act=price-save]', function () {
+    var b = $(this).prop('disabled', true), v = $.trim($('#dh-price-in').val()).replace(',', '.');
+    apiPost('save_price', { price: v }).done(function (r) { S.priceEdit = false; if (S.energy) S.energy.price = r.price; renderEnergy(); })
+      .fail(function (x) { b.prop('disabled', false); alert(err(x)); });
+  });
+  $(root).on('keydown', '#dh-price-in', function (ev) { if (ev.key === 'Enter') $('[data-act=price-save]').click(); if (ev.key === 'Escape') $('[data-act=price-cancel]').click(); });
   $(root).on('input', '[data-act=svc-name]', function () { if (S.edit) S.edit.cur[+$(this).data('i')].name = this.value; });
   $(root).on('click', '#dh-modal', function (ev) { if (ev.target === this) closeEditor(); });
   $(document).on('keydown', function (ev) { if (ev.key === 'Escape' && S.edit) closeEditor(); });
@@ -496,11 +591,12 @@
       if (mains[0]) { push(S.hist.rx, net[mains[0]].rx); push(S.hist.tx, net[mains[0]].tx); }
     }
     push(S.hist.mem, r.mem.used / r.mem.total * 100);
-    if (r.gpus && r.gpus[0]) push(S.hist.gpu, r.gpus[0].busy);
+    if (r.gpus && r.gpus[0]) { push(S.hist.gpu, r.gpus[0].busy); if (r.gpus[0].power != null) push(S.hist.gpuw, r.gpus[0].power); }
     S.live = r;
     renderHead(); renderCpu(); renderMem(); renderGpu(); renderPower(); renderNet(); renderAlerts();
   }
   function loadLive() { api('live').done(onLive); }
+  function loadEnergy() { if (S.priceEdit) return; api('energy').done(function (r) { S.energy = r; renderEnergy(); }); }
   function loadStorage() { api('storage').done(function (r) { S.storage = r; renderStorage(); renderAlerts(); }); }
   function loadSystem() { api('system').done(function (r) { S.system = r; renderHead(); renderCpu(); renderNet(); renderCont(); renderAlerts(); }); }
   function loadContainers() {
@@ -569,6 +665,8 @@
   loadContainers();
   loadStats();
   loadServices();
+  loadEnergy();
+  setInterval(function () { if (!document.hidden) loadEnergy(); }, 60000);
   setInterval(function () { if (!document.hidden && !S.edit) loadLive(); }, 3000);
   setInterval(function () { if (!document.hidden) loadStorage(); }, 15000);
   setInterval(function () { if (!document.hidden) loadSystem(); }, 30000);

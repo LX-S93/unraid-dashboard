@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dashboard.hub">
 <!ENTITY author    "LX-S93">
-<!ENTITY version   "2026.11.06.1">
-<!ENTITY md5       "2f5a698a4dca68d152ff2f9b28a6bee9">
+<!ENTITY version   "2026.11.06.2">
+<!ENTITY md5       "31e9a0ea06b24542c81d6ae88e1a4097">
 <!ENTITY github    "LX-S93/unraid-dashboard">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/&github;/main">
 <!ENTITY pluginURL "&gitURL;/&name;.plg">
@@ -13,6 +13,11 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" support="https://github.com/&github;/issues" project="https://github.com/&github;" min="7.0.0" icon="tachometer" launch="Dashboard">
 
 <CHANGES>
+### 2026.11.06.2
+- NVIDIA cards in the Graphics card: load, power against limit, video memory, fan, power state and which containers use the GPU
+- New "GPU energy &amp; cost" card: today, this month with forecast, per year, idle draw, 30-day chart, today's power curve and cost per container
+- A small collector measures the GPU power every 5 seconds (written to RAM, copied to the flash drive once an hour)
+- Electricity price can be changed right in the card
 ### 2026.11.06.1
 - Fix: services and the container fallback could not load Unraid's Docker data
 - History charts use the full width right from the start
@@ -40,6 +45,19 @@ true
 
 <FILE Run="/bin/bash">
 <INLINE>
+# energy collector for NVIDIA cards (the driver plugin may load after this one at boot)
+if [ -f /boot/config/plugins/nvidia-driver.plg ] || [ -x /usr/bin/nvidia-smi ]; then
+  echo "* * * * * php /usr/local/emhttp/plugins/&name;/include/gpu_collect.php &gt;/dev/null 2&gt;&amp;1" &gt; &cfg;/gpu.cron
+else
+  rm -f &cfg;/gpu.cron
+fi
+[ -x /usr/local/sbin/update_cron ] &amp;&amp; /usr/local/sbin/update_cron
+true
+</INLINE>
+</FILE>
+
+<FILE Run="/bin/bash">
+<INLINE>
 echo ""
 echo "----------------------------------------------------"
 echo " &name; &version; installed"
@@ -51,9 +69,11 @@ echo "----------------------------------------------------"
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 removepkg &pkg; >/dev/null 2>&amp;1
-rm -rf /usr/local/emhttp/plugins/&name;
+rm -f &cfg;/gpu.cron
+[ -x /usr/local/sbin/update_cron ] &amp;&amp; /usr/local/sbin/update_cron
+rm -rf /usr/local/emhttp/plugins/&name; /var/local/&name;
 rm -f &cfg;/&name;-*.txz
-echo "&name; removed. Settings are kept in &cfg;"
+echo "&name; removed. Settings and the GPU energy log are kept in &cfg;"
 </INLINE>
 </FILE>
 

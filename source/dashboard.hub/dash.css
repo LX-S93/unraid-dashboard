@@ -195,3 +195,29 @@ a.dh-alert:hover{filter:brightness(.97)}
 .dh-switch{margin-left:auto;background:transparent;border:1px solid currentColor;border-radius:6px;padding:2px 10px;font:inherit;font-size:12px;line-height:18px;color:inherit;opacity:.8;cursor:pointer;text-transform:none;letter-spacing:0}
 .dh-switch:hover,.dh-switch:focus-visible{opacity:1}
 .dh-classicbar,.dh-ownbar{display:flex;justify-content:flex-end;margin:4px 0 8px}
+
+/* NVIDIA card */
+.dh-gproc{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:3px 0;font-size:13px}
+.dh-gproc b{font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* GPU energy & cost */
+.dh-ekpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dh-ekpi{padding:10px 12px;border-radius:12px;background:var(--s2);border:1px solid var(--line);min-width:0}
+.dh-ekpi small{display:block;font-size:12px;color:var(--mu)}
+.dh-ekpi b{display:block;font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.25}
+.dh-ekpi span{display:block;color:var(--mu);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dh-ekpi:first-child b{color:var(--ac-tx)}
+.dh-egrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:22px}
+@media (max-width:1100px){.dh-ekpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dh-egrid{grid-template-columns:1fr}}
+.dh .dh-bars{display:block;width:100%;height:96px;stroke:none}
+.dh-bars rect.i{fill:var(--line2)}
+.dh-bars rect.a{fill:var(--ac);opacity:.75}
+.dh-bars rect.a.now{opacity:1}
+.dh-bars g:hover rect{opacity:1;filter:brightness(1.1)}
+.dh-axis{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--mu);margin-top:4px}
+.dh-axis .dh-legend{margin:0}
+.dh-legend i.ea{background:var(--ac)}.dh-legend i.ei{background:var(--line2)}
+.dh-note{font-size:11px;margin-top:6px}
+.dh-price{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mu)}
+.dh .dh-price input{width:70px;height:30px;margin:0;padding:0 8px;border:1px solid var(--line2);border-radius:7px;background:var(--s1);color:var(--tx)}
+.dh-ini svg{width:13px;height:13px;color:#fff}

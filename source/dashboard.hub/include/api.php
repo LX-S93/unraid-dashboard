@@ -58,6 +58,16 @@ try {
       $set['services'] = $clean;
       dh_json_write(DH_CFG . '/settings.json', $set);
       dh_out(['services' => $clean]);
+    case 'energy':
+      dh_out(dh_energy());
+    case 'save_price':
+      if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') throw new Exception('POST required');
+      $price = (float)str_replace(',', '.', (string)($_POST['price'] ?? ''));
+      if ($price <= 0 || $price > 5) throw new Exception('Please enter a price between 0 and 5 per kWh');
+      $set = dh_settings();
+      $set['energy_price'] = round($price, 4);
+      dh_json_write(DH_CFG . '/settings.json', $set);
+      dh_out(['price' => $set['energy_price']]);
     default:
       throw new Exception('Unknown action');
   }
