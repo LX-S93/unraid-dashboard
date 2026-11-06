@@ -255,10 +255,9 @@ function dh_system() {
 
 /* ---------- containers (fallback when Container Hub is not installed) ---------- */
 
+// Unraid's Docker library must be loaded at file level (it relies on globals), see dh_need_docker() in api.php
 function dh_containers() {
-  $docroot = $_SERVER['DOCUMENT_ROOT'] ?? '' ?: '/usr/local/emhttp';
-  if (!is_file('/var/run/dockerd.pid') || !is_file("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php")) return null;
-  require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
+  if (!is_file('/var/run/dockerd.pid') || !class_exists('DockerClient')) return null;
   $info = (new DockerTemplates())->getAllInfo();
   $auto = [];
   foreach ((array)@file('/var/lib/docker/unraid-autostart', FILE_IGNORE_NEW_LINES) as $l) {

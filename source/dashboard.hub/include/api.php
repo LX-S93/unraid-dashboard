@@ -2,6 +2,13 @@
 // Dashboard Hub – JSON API (read via GET, write only via POST; Unraid checks the csrf_token on POST)
 require_once __DIR__ . '/lib.php';
 
+// Unraid's Docker library expects $docroot and its own globals at file level
+$docroot = $docroot ?? ($_SERVER['DOCUMENT_ROOT'] ?? '') ?: '/usr/local/emhttp';
+if (in_array($_REQUEST['action'] ?? '', ['containers', 'services', 'candidates'], true)
+  && is_file("$docroot/plugins/dynamix.docker.manager/include/DockerClient.php")) {
+  require_once "$docroot/plugins/dynamix.docker.manager/include/DockerClient.php";
+}
+
 function dh_req($k, $def = '') { return trim((string)($_REQUEST[$k] ?? $def)); }
 function dh_out($d) {
   header('Content-Type: application/json; charset=utf-8');

@@ -54,8 +54,9 @@
     h = h || 44;
     if (!data.length) return '<svg class="dh-spark" viewBox="0 0 100 ' + h + '" preserveAspectRatio="none" aria-hidden="true"></svg>';
     max = max || Math.max.apply(null, data.concat([1]));
-    var n = HIST - 1, pts = data.map(function (v, i) {
-      var x = (i + HIST - data.length) / n * 100, y = h - 2 - Math.min(1, v / max) * (h - 4);
+    // spread the samples over the full width until the history is filled
+    var n = Math.max(1, data.length - 1), pts = data.map(function (v, i) {
+      var x = data.length < 2 ? 100 : i / n * 100, y = h - 2 - Math.min(1, v / max) * (h - 4);
       return x.toFixed(2) + ',' + y.toFixed(2);
     });
     var first = pts[0].split(',')[0];
@@ -313,7 +314,7 @@
     return '<div class="dh-disk">' +
       '<span class="dh-dot ' + ds.k + '" title="' + esc(ds.t) + '"></span>' +
       '<span class="dh-dn"><b>' + esc(label || diskName(d)) + '</b><small>' + esc(extra || [d.fs_type, bytes(d.size)].filter(Boolean).join(' · ')) + '</small></span>' +
-      '<span class="dh-du">' + (use != null ? bar(use, lvl(use, d.warn, d.crit)) + '<small>' + bytes(d.fs_used) + ' of ' + bytes(d.fs_size) + ' · ' + pct(use) + '</small>' : '<small class="dh-muted">' + (d.type === 'Parity' ? 'parity' : '–') + '</small>') + '</span>' +
+      '<span class="dh-du">' + (use != null ? bar(use, lvl(use, d.warn, d.crit)) + '<small>' + bytes(d.fs_used) + ' of ' + bytes(d.fs_size) + ' · ' + pct(use) + '</small>' : '<small class="dh-muted">' + (d.type === 'Parity' ? 'protects the data disks' : '–') + '</small>') + '</span>' +
       '<span class="dh-dt">' + t + (d.errors ? chip('bad', d.errors + ' errors') : '') + '</span>' +
     '</div>';
   }

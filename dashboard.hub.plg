@@ -2,8 +2,8 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "dashboard.hub">
 <!ENTITY author    "LX-S93">
-<!ENTITY version   "2026.11.06">
-<!ENTITY md5       "ff88336bd94ae1ad30a60f8a3254898c">
+<!ENTITY version   "2026.11.06.1">
+<!ENTITY md5       "2f5a698a4dca68d152ff2f9b28a6bee9">
 <!ENTITY github    "LX-S93/unraid-dashboard">
 <!ENTITY gitURL    "https://raw.githubusercontent.com/&github;/main">
 <!ENTITY pluginURL "&gitURL;/&name;.plg">
@@ -13,6 +13,9 @@
 <PLUGIN name="&name;" author="&author;" version="&version;" pluginURL="&pluginURL;" support="https://github.com/&github;/issues" project="https://github.com/&github;" min="7.0.0" icon="tachometer" launch="Dashboard">
 
 <CHANGES>
+### 2026.11.06.1
+- Fix: services and the container fallback could not load Unraid's Docker data
+- History charts use the full width right from the start
 ### 2026.11.06
 - First release: a modern overview in the Dashboard tab, Unraid's tile view one click away
 - Live processor, memory, graphics, UPS and network cards with short history charts
